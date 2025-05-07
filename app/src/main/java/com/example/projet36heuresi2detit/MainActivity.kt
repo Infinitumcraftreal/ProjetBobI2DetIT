@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -44,6 +45,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import android.content.pm.ActivityInfo
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -64,6 +74,7 @@ class MainActivity : ComponentActivity() {
 fun MainScreen() {
     var showSettings by remember { mutableStateOf(false) }
     var showAddRobot by remember { mutableStateOf(false) }
+    var showRobotDetails by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val coroutineScope = rememberCoroutineScope()
 
@@ -77,10 +88,16 @@ fun MainScreen() {
             onBack = { showAddRobot = false },
             snackbarHostState = snackbarHostState
         )
+    } else if (showRobotDetails) {
+        RobotDetails(
+            onBack = { showRobotDetails = false },
+            snackbarHostState = snackbarHostState
+        )
     } else {
         RobotManagerScreen(
             onSettingsClick = { showSettings = true },
             onAddRobotClick = { showAddRobot = true },
+            onRobotCardClick = { showRobotDetails = true },
             snackbarHostState = snackbarHostState,
             coroutineScope = coroutineScope
         )
@@ -92,6 +109,7 @@ fun MainScreen() {
 fun RobotManagerScreen(
     onSettingsClick: () -> Unit,
     onAddRobotClick: () -> Unit,
+    onRobotCardClick: () -> Unit,
     snackbarHostState: SnackbarHostState,
     coroutineScope: kotlinx.coroutines.CoroutineScope
 ) {
@@ -119,7 +137,7 @@ fun RobotManagerScreen(
                     .fillMaxSize()
                     .padding(16.dp)
             ) {
-                RobotCard()
+                RobotCard(onClick = onRobotCardClick)
             }
         },
         containerColor = Color.DarkGray
@@ -127,11 +145,13 @@ fun RobotManagerScreen(
 }
 
 @Composable
-fun RobotCard() {
+fun RobotCard(onClick: () -> Unit) {
     Card(
         colors = CardDefaults.cardColors(containerColor = Color(0xFF333333)),
         shape = RoundedCornerShape(12.dp),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
     ) {
         Row(modifier = Modifier.padding(16.dp)) {
             Box(
@@ -207,6 +227,64 @@ fun AddRobot(
             Column(modifier = Modifier.padding(padding)) {
                 Text("Add Robot Content")
                 // Add your Add Robot UI elements here, e.g., TextFields, Buttons
+            }
+        }
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun RobotDetails(
+    onBack: () -> Unit,
+    snackbarHostState: SnackbarHostState
+) {
+    val context = LocalContext.current
+    var isVisible by remember { mutableStateOf(false) }
+    var changeOrientation by remember { mutableStateOf(false) }
+    var exit by remember { mutableStateOf(false) }
+
+    DisposableEffect(Unit) {
+        isVisible = true
+        changeOrientation = true
+        onDispose {
+            isVisible = false
+        }
+    }
+    LaunchedEffect(changeOrientation) {
+        val activity = context as? ComponentActivity
+        if (changeOrientation) {
+            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+        }
+    }
+    LaunchedEffect(exit) {
+        val activity = context as? ComponentActivity
+        if (exit) {
+            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+            onBack()
+        }
+    }
+    Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
+        topBar = {
+            CenterAlignedTopAppBar(
+                title = { Text("Robot Details") },
+                navigationIcon = {
+                    IconButton(onClick = {
+                        exit = true
+                    }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    }
+                }
+            )
+        },
+        content = { padding ->
+            Column(
+                modifier = Modifier
+                    .padding(padding)
+                    .fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Text("Camera View Here", style = MaterialTheme.typography.headlineMedium)
             }
         }
     )
