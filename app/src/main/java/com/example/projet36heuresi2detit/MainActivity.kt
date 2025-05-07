@@ -16,7 +16,6 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
@@ -45,6 +44,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -74,9 +74,9 @@ fun MainScreen() {
         )
     } else if (showAddRobot) {
         AddRobot(
-                onBackTwo = { showAddRobot = false },
-                snackbarHostState = snackbarHostState
-            )
+            onBack = { showAddRobot = false },
+            snackbarHostState = snackbarHostState
+        )
     } else {
         RobotManagerScreen(
             onSettingsClick = { showSettings = true },
@@ -95,18 +95,11 @@ fun RobotManagerScreen(
     snackbarHostState: SnackbarHostState,
     coroutineScope: kotlinx.coroutines.CoroutineScope
 ) {
-    var showControllRobot by remember { mutableStateOf(false) }
-    if (showControllRobot) {
-        ControllRobot(
-            onBackThree = { showControllRobot = false },
-            snackbarHostState = snackbarHostState
-        )
-    }
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             CenterAlignedTopAppBar(
-                title = { Text("Bob Project") },
+                title = { Text("Nom, Ou Image") },
                 actions = {
                     IconButton(onClick = onSettingsClick) {
                         Icon(Icons.Filled.Settings, contentDescription = "Settings")
@@ -126,7 +119,7 @@ fun RobotManagerScreen(
                     .fillMaxSize()
                     .padding(16.dp)
             ) {
-                RobotCard(onAddControlRobotClick = { showControllRobot = true})
+                RobotCard()
             }
         },
         containerColor = Color.DarkGray
@@ -134,7 +127,7 @@ fun RobotManagerScreen(
 }
 
 @Composable
-fun RobotCard(onAddControlRobotClick: () -> Unit,) {
+fun RobotCard() {
     Card(
         colors = CardDefaults.cardColors(containerColor = Color(0xFF333333)),
         shape = RoundedCornerShape(12.dp),
@@ -153,10 +146,7 @@ fun RobotCard(onAddControlRobotClick: () -> Unit,) {
             Column {
                 Text("Nom Robot", color = Color.White, fontWeight = FontWeight.Bold)
                 Text("Batterie", color = Color.White)
-                Text("Force du signal", color = Color.White)
-            }
-            IconButton(onClick = onAddControlRobotClick) {
-                Icon(Icons.AutoMirrored.Filled.ArrowRight, contentDescription = "Back")
+                Text("Force du signal", color = Color.White, fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -198,7 +188,7 @@ fun SettingsScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AddRobot(
-    onBackTwo: () -> Unit,
+    onBack: () -> Unit,
     snackbarHostState: SnackbarHostState
 ) {
     Scaffold(
@@ -207,7 +197,7 @@ fun AddRobot(
             CenterAlignedTopAppBar(
                 title = { Text("Add Robot") },
                 navigationIcon = {
-                    IconButton(onClick = onBackTwo) {
+                    IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
                     }
                 }
@@ -215,33 +205,8 @@ fun AddRobot(
         },
         content = { padding ->
             Column(modifier = Modifier.padding(padding)) {
-                Text("Coming Soon")
-            }
-        }
-    )
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun ControllRobot(
-    onBackThree: () -> Unit,
-    snackbarHostState: SnackbarHostState
-) {
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
-            CenterAlignedTopAppBar(
-                title = { Text("Control Robot") },
-                navigationIcon = {
-                    IconButton(onClick = onBackThree) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                }
-            )
-        },
-        content = { padding ->
-            Column(modifier = Modifier.padding(padding)) {
-                Text("Coming Soon")
+                Text("Add Robot Content")
+                // Add your Add Robot UI elements here, e.g., TextFields, Buttons
             }
         }
     )
