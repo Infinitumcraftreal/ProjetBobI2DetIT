@@ -51,6 +51,7 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation("androidx.compose.material3:material3:1.3.0") // Or a more recent version
     implementation("androidx.compose.material:material-icons-extended:1.7.0") // For Material 2 extended icons
+    implementation("androidx.compose.runtime:runtime:1.8.1")
     testImplementation(libs.junit)
 
     androidTestImplementation(libs.androidx.junit)
