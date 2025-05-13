@@ -1,10 +1,15 @@
 package com.example.projet36heuresi2detit
 
+import android.content.pm.ActivityInfo
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -34,6 +39,8 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -42,19 +49,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import android.content.pm.ActivityInfo
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -69,7 +68,6 @@ class MainActivity : ComponentActivity() {
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MainScreen() {
     var showSettings by remember { mutableStateOf(false) }
@@ -243,19 +241,37 @@ fun RobotDetails(
     var changeOrientation by remember { mutableStateOf(false) }
     var exit by remember { mutableStateOf(false) }
 
+    var bitmap by remember { mutableStateOf<Bitmap?>(null) }
+
+    // Instantiate and remember TCP client only once
+    val tcpClient = remember {
+        MyTcpClient("192.168.4.1", 1234) { /* You can handle errors here */ }
+    }
+
     DisposableEffect(Unit) {
         isVisible = true
         changeOrientation = true
+
+        // Start TCP connection on entering screen
+        tcpClient.connect()
+        tcpClient.receiveImage { byteArray ->
+            val bmp = BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size)
+            bitmap = bmp
+        }
+
         onDispose {
             isVisible = false
+            tcpClient.disconnect()
         }
     }
+
     LaunchedEffect(changeOrientation) {
         val activity = context as? ComponentActivity
         if (changeOrientation) {
             activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
         }
     }
+
     LaunchedEffect(exit) {
         val activity = context as? ComponentActivity
         if (exit) {
@@ -263,6 +279,7 @@ fun RobotDetails(
             onBack()
         }
     }
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
@@ -282,13 +299,23 @@ fun RobotDetails(
                 modifier = Modifier
                     .padding(padding)
                     .fillMaxSize(),
-                horizontalAlignment = Alignment.CenterHorizontally
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
             ) {
-                Text("Camera View Here", style = MaterialTheme.typography.headlineMedium)
+                bitmap?.let {
+                    Image(
+                        bitmap = it.asImageBitmap(),
+                        contentDescription = "Camera Feed",
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                    )
+                } ?: Text("Waiting for image...", style = MaterialTheme.typography.headlineMedium)
             }
         }
     )
 }
+
 
 @Preview(showBackground = true)
 @Composable
