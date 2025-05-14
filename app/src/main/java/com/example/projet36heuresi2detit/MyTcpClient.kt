@@ -1,8 +1,6 @@
 package com.example.projet36heuresi2detit
 
-import android.graphics.BitmapFactory
 import java.io.BufferedInputStream
-import java.io.ByteArrayOutputStream
 import java.io.DataInputStream
 import java.io.IOException
 import java.net.InetSocketAddress

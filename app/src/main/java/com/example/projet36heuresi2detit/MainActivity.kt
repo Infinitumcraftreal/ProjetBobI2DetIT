@@ -1,5 +1,6 @@
 package com.example.projet36heuresi2detit
 
+import android.annotation.SuppressLint
 import android.content.pm.ActivityInfo
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -44,7 +45,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -74,7 +74,6 @@ fun MainScreen() {
     var showAddRobot by remember { mutableStateOf(false) }
     var showRobotDetails by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
-    val coroutineScope = rememberCoroutineScope()
 
     if (showSettings) {
         SettingsScreen(
@@ -97,7 +96,6 @@ fun MainScreen() {
             onAddRobotClick = { showAddRobot = true },
             onRobotCardClick = { showRobotDetails = true },
             snackbarHostState = snackbarHostState,
-            coroutineScope = coroutineScope
         )
     }
 }
@@ -109,7 +107,6 @@ fun RobotManagerScreen(
     onAddRobotClick: () -> Unit,
     onRobotCardClick: () -> Unit,
     snackbarHostState: SnackbarHostState,
-    coroutineScope: kotlinx.coroutines.CoroutineScope
 ) {
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
@@ -230,6 +227,7 @@ fun AddRobot(
     )
 }
 
+@SuppressLint("SourceLockedOrientationActivity")
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RobotDetails(
