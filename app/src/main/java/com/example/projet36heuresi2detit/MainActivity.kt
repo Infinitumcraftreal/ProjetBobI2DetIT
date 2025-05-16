@@ -54,6 +54,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import kotlinx.coroutines.delay
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -70,6 +71,7 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun MainScreen() {
+    val context = LocalContext.current
     var showSettings by remember { mutableStateOf(false) }
     var showAddRobot by remember { mutableStateOf(false) }
     var showRobotDetails by remember { mutableStateOf(false) }
@@ -94,7 +96,10 @@ fun MainScreen() {
         RobotManagerScreen(
             onSettingsClick = { showSettings = true },
             onAddRobotClick = { showAddRobot = true },
-            onRobotCardClick = { showRobotDetails = true },
+            onRobotCardClick = {
+                val activity = context as? ComponentActivity
+                activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+                showRobotDetails = true },
             snackbarHostState = snackbarHostState,
         )
     }
@@ -263,12 +268,6 @@ fun RobotDetails(
         }
     }
 
-    LaunchedEffect(changeOrientation) {
-        val activity = context as? ComponentActivity
-        if (changeOrientation) {
-            activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-        }
-    }
 
     LaunchedEffect(exit) {
         val activity = context as? ComponentActivity
