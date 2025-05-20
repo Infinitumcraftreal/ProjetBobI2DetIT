@@ -1,6 +1,9 @@
 package com.example.projet36heuresi2detit
 
+import MyBluetoothClient
 import android.annotation.SuppressLint
+import android.bluetooth.BluetoothAdapter
+import android.bluetooth.BluetoothDevice
 import android.content.pm.ActivityInfo
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
@@ -54,11 +57,28 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.delay
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
 
 class MainActivity : ComponentActivity() {
+
+    private val bluetoothPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted ->
+            if (!isGranted) {
+                Toast.makeText(this, "Bluetooth permission is required to connect to the robot", Toast.LENGTH_LONG).show()
+            }
+        }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        checkBluetoothPermission()
+
         setContent {
             MaterialTheme {
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
@@ -67,7 +87,22 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
+    // ✅ Move this inside the class
+    private fun checkBluetoothPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            if (ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.BLUETOOTH_CONNECT
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                bluetoothPermissionLauncher.launch(Manifest.permission.BLUETOOTH_CONNECT)
+            }
+        }
+    }
 }
+
+
 
 @Composable
 fun MainScreen() {
@@ -76,6 +111,24 @@ fun MainScreen() {
     var showAddRobot by remember { mutableStateOf(false) }
     var showRobotDetails by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
+
+    // Track if we want to show a Snackbar for permission
+    var showBluetoothPermissionSnackbar by remember { mutableStateOf(false) }
+
+    val hasBluetoothPermission =
+        Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
+                ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.BLUETOOTH_CONNECT
+                ) == PackageManager.PERMISSION_GRANTED
+
+    // Show the snackbar if needed
+    if (showBluetoothPermissionSnackbar) {
+        LaunchedEffect(snackbarHostState) {
+            snackbarHostState.showSnackbar("Bluetooth permission required to view details")
+            showBluetoothPermissionSnackbar = false // reset after showing
+        }
+    }
 
     if (showSettings) {
         SettingsScreen(
@@ -97,9 +150,14 @@ fun MainScreen() {
             onSettingsClick = { showSettings = true },
             onAddRobotClick = { showAddRobot = true },
             onRobotCardClick = {
-                val activity = context as? ComponentActivity
-                activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-                showRobotDetails = true },
+                if (hasBluetoothPermission) {
+                    val activity = context as? ComponentActivity
+                    activity?.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+                    showRobotDetails = true
+                } else {
+                    showBluetoothPermissionSnackbar = true
+                }
+            },
             snackbarHostState = snackbarHostState,
         )
     }
@@ -110,7 +168,7 @@ fun MainScreen() {
 fun RobotManagerScreen(
     onSettingsClick: () -> Unit,
     onAddRobotClick: () -> Unit,
-    onRobotCardClick: () -> Unit,
+    onRobotCardClick: () -> Unit, // ✅ Just a regular lambda!
     snackbarHostState: SnackbarHostState,
 ) {
     Scaffold(
@@ -178,6 +236,33 @@ fun SettingsScreen(
     onBack: () -> Unit,
     snackbarHostState: SnackbarHostState
 ) {
+    val context = LocalContext.current
+    var hasBluetoothPermission by remember { mutableStateOf(false) }
+
+    // Permission launcher for Compose
+    val bluetoothPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        hasBluetoothPermission = isGranted
+        Toast.makeText(
+            context,
+            if (isGranted) "Bluetooth permission granted" else "Bluetooth permission denied",
+            Toast.LENGTH_SHORT
+        ).show()
+    }
+
+    // Check current permission state when entering screen
+    LaunchedEffect(Unit) {
+        hasBluetoothPermission = if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S) {
+            true
+        } else {
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.BLUETOOTH_CONNECT
+            ) == PackageManager.PERMISSION_GRANTED
+        }
+    }
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
@@ -193,13 +278,29 @@ fun SettingsScreen(
         content = { padding ->
             Column(modifier = Modifier.padding(padding)) {
                 Text("Settings Content")
-                // Add your settings UI elements here, e.g.,
-                Button(onClick = { /* TODO: Implement setting change */ }) {
-                    Text("Change Setting 1")
+
+                Button(onClick = {
+                    // Check permission and ask if not granted
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+                        ContextCompat.checkSelfPermission(
+                            context,
+                            Manifest.permission.BLUETOOTH_CONNECT
+                        ) != PackageManager.PERMISSION_GRANTED
+                    ) {
+                        bluetoothPermissionLauncher.launch(Manifest.permission.BLUETOOTH_CONNECT)
+                    } else {
+                        Toast.makeText(context, "Bluetooth permission already granted", Toast.LENGTH_SHORT).show()
+                    }
+                }) {
+                    Text("Check Bluetooth Permission")
                 }
-                Button(onClick = { /* TODO: Implement setting change */ }) {
-                    Text("Change Setting 2")
-                }
+
+                Text(
+                    text = if (hasBluetoothPermission) "Bluetooth permission: ✅ Granted" else "Bluetooth permission: ❌ Not granted",
+                    color = if (hasBluetoothPermission) Color.Green else Color.Red
+                )
+
+                // You can add more settings here...
             }
         }
     )
@@ -246,28 +347,36 @@ fun RobotDetails(
 
     var bitmap by remember { mutableStateOf<Bitmap?>(null) }
 
-    // Instantiate and remember TCP client only once
-    val tcpClient = remember {
-        MyTcpClient("192.168.4.1", 1234) { /* You can handle errors here */ }
+    val bluetoothAdapter = BluetoothAdapter.getDefaultAdapter()
+    val device = remember {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S ||
+            ContextCompat.checkSelfPermission(context, Manifest.permission.BLUETOOTH_CONNECT) == PackageManager.PERMISSION_GRANTED
+        ) {
+            bluetoothAdapter?.bondedDevices?.firstOrNull {
+                it.name == "YourGroveBTName" || it.address == "XX:XX:XX:XX:XX:XX"
+            }
+        } else {
+            null
+        }
     }
+    val bluetoothClient = remember(device) { device?.let { MyBluetoothClient(it, context) } }
 
-    DisposableEffect(Unit) {
+
+    LaunchedEffect(device) {
         isVisible = true
         changeOrientation = true
 
-        // Start TCP connection on entering screen
-        tcpClient.connect()
-        tcpClient.receiveImage { byteArray ->
+        bluetoothClient?.connectAndReceiveImage { byteArray ->
             val bmp = BitmapFactory.decodeByteArray(byteArray, 0, byteArray.size)
             bitmap = bmp
         }
-
+    }
+    DisposableEffect(Unit) {
         onDispose {
             isVisible = false
-            tcpClient.disconnect()
+            bluetoothClient?.disconnect()
         }
     }
-
 
     LaunchedEffect(exit) {
         val activity = context as? ComponentActivity
@@ -312,7 +421,6 @@ fun RobotDetails(
         }
     )
 }
-
 
 @Preview(showBackground = true)
 @Composable
